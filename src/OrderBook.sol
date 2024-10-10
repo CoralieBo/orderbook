@@ -8,9 +8,8 @@ contract OrderBook {
     struct Order {
         address trader;
         uint256 amount;
-        uint256 price; // Price per token in the other ERC20 token
+        uint256 price;
         bool isBuyOrder;
-        // bool isFilled;
     }
 
     IERC20 public token1;
@@ -80,7 +79,7 @@ contract OrderBook {
                 price: _price,
                 isBuyOrder: true
             }));
-            require(token2.transferFrom(msg.sender, address(this), totalCost), "Payment failed");
+            require(token2.transferFrom(msg.sender, address(this), totalCost), "Payment transfer failed");
         }
 
         emit NewOrder(orderCount, msg.sender, _amount, _price, true);
@@ -121,7 +120,7 @@ contract OrderBook {
                 price: _price,
                 isBuyOrder: false
             }));
-            require(token1.transferFrom(msg.sender, address(this), _amount), "Asset transfer failed");
+            require(token1.transferFrom(msg.sender, address(this), _amount), "Payment transfer failed");
         }
         emit NewOrder(orderCount, msg.sender, _amount, _price, false);
     }

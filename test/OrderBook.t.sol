@@ -30,23 +30,98 @@ contract OrderBookTest is Test {
         token2.transfer(user2, 1000 * 10 ** token2.decimals());
     }
 
-    function test_CreateBuyOrder() public {
+    function test_CreateOrder_Fail() public {
         vm.startPrank(user1);
 
-        // Approve token2 for the OrderBook
         token1.approve(address(orderBook), 100 * 1e18);
 
-        // Create a buy order
-        orderBook.createOrder(10, 10, false);
+        vm.expectRevert("Amount must be greater than 0");
+        orderBook.createOrder(0, 1, false);
 
-        // Check that the buy order is recorded
+        vm.expectRevert("Price must be greater than 0");
+        orderBook.createOrder(100, 0, false);
+
+        vm.stopPrank();
+    }
+
+    function test_CreateBuyOrder_Success() public {
+        vm.startPrank(user1);
+
+        token1.approve(address(orderBook), 100 * 1e18);
+
+        orderBook.createOrder(100, 1, false);
+
         OrderBook.Order[] memory sells = orderBook.getSells();
         assertEq(sells.length, 1);
         assertEq(sells[0].trader, user1);
-        assertEq(sells[0].amount, 10);
-        assertEq(sells[0].price, 10);
+        assertEq(sells[0].amount, 100);
+        assertEq(sells[0].price, 1);
         assertFalse(sells[0].isBuyOrder);
 
         vm.stopPrank();
     }
+
+    function test_CreateSellOrder_Success() public {
+        vm.startPrank(user2);
+
+        token2.approve(address(orderBook), 100 * 1e18);
+ 
+        orderBook.createOrder(100, 1, true);
+
+        OrderBook.Order[] memory buys = orderBook.getBuys();
+        assertEq(buys.length, 1);
+        assertEq(buys[0].trader, user2);
+        assertEq(buys[0].amount, 100);
+        assertEq(buys[0].price, 1);
+        assertTrue(buys[0].isBuyOrder);
+
+        vm.stopPrank();
+    }
+
+    function test_CreateSellAndBuyOrders_Success() public {
+
+        vm.startPrank(user1);
+
+        token1.approve(address(orderBook), 100 * 1e18);
+
+        orderBook.createOrder(100, 1, false);
+
+        OrderBook.Order[] memory sells = orderBook.getSells();
+        assertEq(sells.length, 1);
+        assertEq(sells[0].trader, user1);
+        assertEq(sells[0].amount, 100);
+        assertEq(sells[0].price, 1);
+        assertFalse(sells[0].isBuyOrder);
+
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+
+        token2.approve(address(orderBook), 100 * 1e18);
+ 
+        orderBook.createOrder(100, 1, true);
+
+        OrderBook.Order[] memory history = orderBook.getHistory();
+        assertEq(history.length, 2);
+        assertEq(history[0].trader, user2);
+        assertEq(history[1].trader, user1);
+        assertEq(history[0].amount, 100);
+        assertEq(history[1].amount, 100);
+        assertEq(history[0].price, 1);
+        assertEq(history[1].price, 1);
+        assertTrue(history[0].isBuyOrder);
+        assertFalse(history[1].isBuyOrder);
+
+        OrderBook.Order[] memory buys = orderBook.getBuys();
+        assertEq(buys.length, 0);
+        OrderBook.Order[] memory sells2 = orderBook.getSells();
+        assertEq(sells2.length, 0);
+
+        vm.stopPrank();
+    }
+
+    function test_getOrderCount() public view {
+        assertEq(orderBook.orderCount(), 0);
+    }
+
 }
